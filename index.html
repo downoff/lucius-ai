@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lucius AI</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="global.js" defer></script>
+</head>
+<body>
+    <header class="container">
+        <nav>
+            <ul>
+                <li><a href="index.html"><strong>Lucius</strong></a></li>
+            </ul>
+            <ul id="logged-out-links" style="display: flex;">
+                <li><a href="login.html">Login</a></li>
+                <li><a href="signup.html" role="button">Sign Up</a></li>
+            </ul>
+            <ul id="logged-in-links" style="display: none;">
+                <li><a href="pricing.html" role="button" class="secondary">Upgrade to Pro</a></li>
+                <li><button id="logout-button">Logout</button></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="container">
+        <article id="chat-interface">
+            <h1>Hello! What would you like to explore today?</h1>
+            <div id="output-area" style="margin-top: 2rem; border: 1px solid #ddd; padding: 1rem; min-height: 200px; white-space: pre-wrap; word-wrap: break-word;"></div>
+            <form id="prompt-form" style="margin-top: 1rem;">
+                <label for="tone-select">Select a Tone of Voice:</label>
+                <select id="tone-select">
+                  <option value="Helpful" selected>Helpful Assistant</option>
+                  <option value="Professional">Professional</option>
+                  <option value="Casual">Casual</option>
+                  <option value="Witty">Witty</option>
+                  <option value="Enthusiastic">Enthusiastic</option>
+                </select>
+                <textarea id="prompt-input" placeholder="Ask me anything..." required style="margin-top: 1rem;"></textarea>
+                <button type="submit" id="generate-button">Send</button>
+            </form>
+        </article>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Tool</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    
+    <script src="https://js.puter.com/v2/"></script>
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="container">
+        <nav>
+            <ul>
+                <li><a href="index.html"><strong>&larr; Back to AI Tool Nest</strong></a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="container">
+        <h1 id="tool-name">Loading Tool...</h1>
+        <p id="tool-description"></p>
+
+        <hr>
+
+        <article id="tool-interface">
+            <h2>Use the Tool</h2>
+            <p>Enter your prompt below to generate content.</p>
+            <form id="prompt-form">
+                <textarea id="prompt-input" placeholder="For example: 'Write a short poem about a robot learning to paint'" required></textarea>
+                <button type="submit" id="generate-button">Generate</button>
+            </form>
+            <div id="tool-output-container" style="margin-top: 1rem;">
+                <strong>Output:</strong>
+                <pre id="tool-output">Your generated content will appear here.</pre>
+            </div>
+        </article>
+
+    </main>
+
+    <script src="tool.js"></script>
+</body>
+</html>
