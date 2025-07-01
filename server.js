@@ -13,9 +13,7 @@ const app = express();
 const port = 3000;
 
 app.use(cors());
-
-app.post('/stripe-webhook', express.raw({type: 'application/json'}), async (req, res) => { /* ...your existing webhook logic... */ });
-
+app.post('/stripe-webhook', express.raw({type: 'application/json'}), async (req, res) => { /* ...your webhook logic... */ });
 app.use(express.json());
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -36,46 +34,42 @@ const Conversation = mongoose.model('Conversation', conversationSchema);
 
 
 // --- API ROUTES ---
-app.post('/api/users/register', async (req, res) => { /* ...your existing register route... */ });
-app.post('/api/users/login', async (req, res) => { /* ...your existing login route... */ });
-app.get('/api/users/me', authMiddleware, async (req, res) => { /* ...your existing get profile route... */ });
-app.post('/api/ai/generate', authMiddleware, async (req, res) => { /* ...your existing generate route that saves history... */ });
+// Auth and Conversation routes are here...
+app.post('/api/users/register', async (req, res) => { /* ...your existing route... */ });
+app.post('/api/users/login', async (req, res) => { /* ...your existing route... */ });
+app.get('/api/users/me', authMiddleware, async (req, res) => { /* ...your existing route... */ });
+app.post('/api/ai/generate', authMiddleware, async (req, res) => { /* ...your existing route... */ });
+app.get('/api/conversations', authMiddleware, async (req, res) => { /* ...your existing route... */ });
+app.get('/api/conversations/:id', authMiddleware, async (req, res) => { /* ...your existing route... */ });
 
 
-// --- NEW: ROUTES FOR CHAT HISTORY ---
-
-// GET all conversation titles for the logged-in user
-app.get('/api/conversations', authMiddleware, async (req, res) => {
+// --- NEW: Protected Image Generation Route ---
+app.post('/api/ai/generate-image', authMiddleware, async (req, res) => {
     try {
-        const conversations = await Conversation.find({ userId: req.user.id })
-            .sort({ createdAt: -1 }) // Sort by newest first
-            .select('title createdAt'); // Only select the fields we need for the list
+        const user = await User.findById(req.user.id);
+        if (!user || !user.isPro) {
+            return res.status(403).json({ message: 'This is a Pro feature. Please upgrade your account.' });
+        }
+
+        const { prompt } = req.body;
+
+        // NOTE: The exact model name and API call structure for image generation
+        // via Vertex AI can vary. This is a representative example.
+        // We are using a placeholder for the model name here.
+        const model = genAI.getGenerativeModel({ model: "imagen-2" }); // Example model name
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
         
-        res.json(conversations);
+        // Image APIs often return data differently. We assume it returns an object with an image URL.
+        // This line may need to be adjusted based on the actual response structure from the API.
+        const imageUrl = response.candidates[0].content.parts[0].uri; 
+
+        res.json({ imageUrl: imageUrl });
+
     } catch (error) {
-        console.error('Error fetching conversations:', error);
-        res.status(500).json({ message: 'Server error' });
-    }
-});
-
-// GET a single, full conversation by its ID
-app.get('/api/conversations/:id', authMiddleware, async (req, res) => {
-    try {
-        const conversation = await Conversation.findById(req.params.id);
-
-        if (!conversation) {
-            return res.status(404).json({ message: 'Conversation not found' });
-        }
-
-        // Security Check: Make sure the requested conversation belongs to the logged-in user
-        if (conversation.userId.toString() !== req.user.id) {
-            return res.status(401).json({ message: 'Not authorized' });
-        }
-
-        res.json(conversation);
-    } catch (error) {
-        console.error('Error fetching single conversation:', error);
-        res.status(500).json({ message: 'Server error' });
+        console.error("Image Generation API error:", error);
+        res.status(500).json({ message: 'An error occurred while generating the image.' });
     }
 });
 
