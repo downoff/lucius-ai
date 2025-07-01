@@ -2,14 +2,19 @@ body {
     font-family: 'Arial', sans-serif;
 }
 
-/* Make the entire article clickable */
-.tool-link {
-    display: block;
-    text-decoration: none;
-    color: inherit;
-    transition: background-color 0.2s ease-in-out;
+/* --- Main Layout Styles for Chat History --- */
+
+.main-layout {
+    display: flex;
+    gap: 2rem; /* Adds some space between the columns */
+    align-items: flex-start;
 }
 
-.tool-link:hover {
-    background-color: #f4f4f4;
+#history-sidebar {
+    flex: 0 0 250px; /* Prevents the sidebar from growing or shrinking */
+    width: 250px;
+}
+
+#chat-container {
+    flex-grow: 1; /* Allows the main chat area to take up the remaining space */
 }
