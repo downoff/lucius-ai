@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,8 +12,12 @@
     <header class="container">
         <nav>
             <ul>
-                <li><a href="index.html"><strong>Lucius</strong></a></li>
-                <li><a href="image-generator.html">Image Generator</a></li>
+                <li>
+                    <a href="index.html" class="logo">
+                        <div class="logo-triangle"></div>
+                        <strong>Lucius</strong>
+                    </a>
+                </li>
             </ul>
             <ul id="logged-out-links" style="display: flex;">
                 <li><a href="login.html">Login</a></li>
@@ -28,8 +32,8 @@
 
     <main class="container">
         <article id="chat-interface">
-            <h1>Hello! What would you like to explore today?</h1>
-            <div id="output-area" style="margin-top: 2rem; border: 1px solid #ddd; padding: 1rem; min-height: 200px; white-space: pre-wrap; word-wrap: break-word;"></div>
+            <h1 id="welcome-message">Hello! What would you like to explore today?</h1>
+            <div id="output-area" style="margin-top: 2rem; border: 1px solid var(--border-color); padding: 1rem; min-height: 200px; white-space: pre-wrap; word-wrap: break-word;"></div>
             <form id="prompt-form" style="margin-top: 1rem;">
                 <label for="tone-select">Select a Tone of Voice:</label>
                 <select id="tone-select">
