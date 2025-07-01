@@ -3,25 +3,46 @@ document.addEventListener('DOMContentLoaded', () => {
     checkLoginStatus();
 });
 
-function checkLoginStatus() {
+async function checkLoginStatus() {
     const token = localStorage.getItem('token');
     const loggedOutLinks = document.getElementById('logged-out-links');
     const loggedInLinks = document.getElementById('logged-in-links');
+    
+    // IMPORTANT: Make sure this is your correct live backend URL from Render
+    const backendUrl = 'https://lucius-ai.onrender.com';
 
-    // Make sure these elements exist on the page before trying to modify them
     if (loggedOutLinks && loggedInLinks) {
         if (token) {
-            // User is logged in: show the 'Logout' & 'Upgrade' links.
+            // User is logged in. Show the correct navigation buttons.
             loggedOutLinks.style.display = 'none';
-            loggedInLinks.style.display = 'flex'; // 'flex' makes it visible and aligns items
+            loggedInLinks.style.display = 'flex';
 
             const logoutButton = document.getElementById('logout-button');
-            // Add listener only if the button exists
             if (logoutButton) {
                 logoutButton.addEventListener('click', logout);
             }
+
+            // --- NEW: Fetch user profile to check for Pro status ---
+            try {
+                const response = await fetch(`${backendUrl}/api/users/me`, {
+                    headers: { 'x-auth-token': token }
+                });
+
+                if (response.ok) {
+                    const user = await response.json();
+                    const welcomeMessage = document.getElementById('welcome-message');
+                    
+                    if (welcomeMessage && user.isPro) {
+                        // If we are on the homepage and the user is Pro, change the message!
+                        welcomeMessage.innerHTML = `Welcome back, Pro Member!<br/>You are using the advanced Gemini model.`;
+                    }
+                }
+            } catch (error) {
+                console.error('Could not fetch user profile:', error);
+            }
+
         } else {
-            // User is logged out: show the 'Login' & 'Sign Up' links.
+            // User is logged out.
             loggedOutLinks.style.display = 'flex';
             loggedInLinks.style.display = 'none';
         }
@@ -29,8 +50,6 @@ function checkLoginStatus() {
 }
 
 function logout() {
-    // To logout, we remove the token from storage
     localStorage.removeItem('token');
-    // And then redirect back to the homepage
     window.location.href = 'index.html';
 }
