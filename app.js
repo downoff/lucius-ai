@@ -20,12 +20,10 @@ async function handleChatSubmit(event) {
     const token = localStorage.getItem('token'); // Check if a login token exists
 
     if (token) {
-        // If a token exists, the user is logged in.
-        // We will use the "Pro" workflow by calling our secure backend.
+        // If token exists, user is logged in. Call the backend for the Pro experience.
         await callProApi(token);
     } else {
-        // If there is no token, the user is a free, anonymous visitor.
-        // We will use the "Basic" workflow by calling the free Puter.js API.
+        // If no token, user is a free visitor. Call the frontend Puter.js API.
         callFreeApi();
     }
 }
@@ -51,7 +49,8 @@ function callFreeApi() {
 
     puter.ai.chat(finalPrompt)
         .then(response => {
-            outputArea.innerText = response;
+            // THE FIX: The text is inside response.message.content
+            outputArea.innerText = response.message.content;
         })
         .catch(error => {
             console.error('Error during Puter.js generation:', error);
