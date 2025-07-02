@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Puter.js Test</title>
+    <script src="https://js.puter.com/v2/"></script>
+</head>
+<body>
+    <h1>Puter.js Test Page</h1>
+    <p>We are attempting to call puter.ai.chat(). Check the browser console (press F12) for the result.</p>
+    <p id="result-area"></p>
+
+    <script>
+        console.log("Attempting to use puter.ai.chat()...");
+        const resultArea = document.getElementById('result-area');
+        
+        puter.ai.chat("hello")
+            .then(response => {
+                console.log("SUCCESS! Puter responded:", response);
+                resultArea.innerText = "SUCCESS! The API call worked.";
+                resultArea.style.color = 'green';
+            })
+            .catch(error => {
+                console.error("ERROR! The puter.ai.chat() call failed:", error);
+                resultArea.innerText = "ERROR! The call failed. Check the console for the reason.";
+                resultArea.style.color = 'red';
+            });
+    </script>
+</body>
+</html>
