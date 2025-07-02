@@ -9,67 +9,108 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * This is the main function that decides which AI to use.
+ * The main function that decides which AI to use.
  * @param {Event} event The form submission event.
  */
 async function handleChatSubmit(event) {
     event.preventDefault();
+    const token = localStorage.getItem('token');
+
+    if (token) {
+        await callProApi(token);
+    } else {
+        await callFreeApi();
+    }
+}
+
+/**
+ * Handles AI generation for FREE users with STREAMING.
+ */
+async function callFreeApi() {
+    console.log("Calling Free API (Puter.js with Streaming)");
 
     const sendButton = document.getElementById('generate-button');
     const outputArea = document.getElementById('output-area');
+    const loader = document.getElementById('loader');
+    const promptInput = document.getElementById('prompt-input');
+    const toneSelect = document.getElementById('tone-select');
+
+    const userPrompt = promptInput.value;
+    const selectedTone = toneSelect.value;
+    const finalPrompt = `Your tone of voice must be strictly ${selectedTone}. Now, please respond to the following request: "${userPrompt}"`;
+    
+    // --- UI Update: Start Loading ---
+    sendButton.disabled = true;
+    loader.innerHTML = '<div class="loader"></div>'; // Show the spinner
+    loader.style.display = 'block';
+    outputArea.innerText = ''; // Clear previous response
+
+    try {
+        // We add {stream: true} to get the typewriter effect
+        const responseStream = await puter.ai.chat(finalPrompt, { stream: true });
+
+        for await (const part of responseStream) {
+            if (part.message?.content) {
+                // The 'replaceAll' cleans up the streaming text
+                outputArea.innerText += part.message.content.replaceAll(' .', '.');
+            }
+        }
+    } catch (error) {
+        console.error('Error during Puter.js streaming:', error);
+        outputArea.innerText = 'Sorry, an error occurred with the Basic AI.';
+    } finally {
+        // --- UI Update: Stop Loading ---
+        sendButton.disabled = false;
+        loader.style.display = 'none'; // Hide the spinner
+        loader.innerHTML = '';
+    }
+}
+
+/**
+ * Handles the AI generation for LOGGED-IN users.
+ * Note: Streaming for the backend would require more significant changes, so we will keep it simple for now.
+ * @param {string} token The user's login token.
+ */
+async function callProApi(token) {
+    console.log("Calling Pro API (Backend with Gemini)");
+
+    const sendButton = document.getElementById('generate-button');
+    const outputArea = document.getElementById('output-area');
+    const loader = document.getElementById('loader');
     const promptInput = document.getElementById('prompt-input');
     const toneSelect = document.getElementById('tone-select');
     
     const userPrompt = promptInput.value;
     const selectedTone = toneSelect.value;
-    const finalPrompt = `Your tone of voice must be strictly ${selectedTone}. Now, please respond to the following request: "${userPrompt}"`;
     
-    sendButton.setAttribute('aria-busy', 'true');
+    // --- UI Update: Start Loading ---
     sendButton.disabled = true;
-    
-    const token = localStorage.getItem('token');
-    let userIsPro = false;
+    loader.innerHTML = '<div class="loader"></div>';
+    loader.style.display = 'block';
+    outputArea.innerText = '';
 
-    // First, check if the user is logged in and if they are a Pro member
-    if (token) {
-        try {
-            const response = await fetch(`${backendUrl}/api/users/me`, {
-                headers: { 'x-auth-token': token }
-            });
-            if (response.ok) {
-                const user = await response.json();
-                userIsPro = user.isPro; // Check the user's pro status
-            }
-        } catch (error) {
-            console.error('Could not verify pro status, defaulting to basic model.', error);
-        }
-    }
-
-    // Now, decide which model to use
-    let modelToUse;
-    if (userIsPro) {
-        console.log("User is Pro. Using Gemini Pro model.");
-        outputArea.innerText = 'Lucius (Pro) is thinking...';
-        // Use a powerful Gemini Pro model for paying users
-        modelToUse = 'google/gemini-2.5-pro-exp-03-25:free'; 
-    } else {
-        console.log("User is Free/Anonymous. Using basic model.");
-        outputArea.innerText = 'Lucius (Basic) is thinking...';
-        // Use a fast, free model for the basic tier
-        modelToUse = 'o1-mini'; 
-    }
-
-    // Call the Puter.js API with the chosen model
-    puter.ai.chat(finalPrompt, { model: modelToUse })
-        .then(response => {
-            outputArea.innerText = response.message.content;
-        })
-        .catch(error => {
-            console.error('Error during Puter.ai generation:', error);
-            outputArea.innerText = 'Sorry, an error occurred. Please try again.';
-        })
-        .finally(() => {
-            sendButton.setAttribute('aria-busy', 'false');
-            sendButton.disabled = false;
+    try {
+        const response = await fetch(`${backendUrl}/api/ai/generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+            body: JSON.stringify({ prompt: userPrompt, tone: selectedTone }),
         });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'An error occurred.');
+        }
+
+        const data = await response.json();
+        outputArea.innerText = data.text; // The Pro response appears all at once for now
+
+    } catch (error) {
+        console.error('Generation fetch error:', error);
+        outputArea.innerText = `Error: ${error.message}`;
+    } finally {
+        // --- UI Update: Stop Loading ---
+        sendButton.disabled = false;
+        loader.style.display = 'none';
+        loader.innerHTML = '';
+    }
 }
