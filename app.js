@@ -17,17 +17,19 @@ async function handleChatSubmit(event) {
     const token = localStorage.getItem('token');
 
     if (token) {
+        // Logged-in users will call the backend for the Pro experience
         await callProApi(token);
     } else {
+        // Anonymous users will call the free frontend API
         await callFreeApi();
     }
 }
 
 /**
- * Handles AI generation for FREE users with STREAMING.
+ * Handles AI generation for FREE users by calling Puter.js (Non-Streaming).
  */
 async function callFreeApi() {
-    console.log("Calling Free API (Puter.js with Streaming)");
+    console.log("Calling Free API (Puter.js - Non-Streaming)");
 
     const sendButton = document.getElementById('generate-button');
     const outputArea = document.getElementById('output-area');
@@ -39,36 +41,29 @@ async function callFreeApi() {
     const selectedTone = toneSelect.value;
     const finalPrompt = `Your tone of voice must be strictly ${selectedTone}. Now, please respond to the following request: "${userPrompt}"`;
     
-    // --- UI Update: Start Loading ---
     sendButton.disabled = true;
-    loader.innerHTML = '<div class="loader"></div>'; // Show the spinner
+    loader.innerHTML = '<div class="loader"></div>';
     loader.style.display = 'block';
-    outputArea.innerText = ''; // Clear previous response
+    outputArea.innerText = 'Lucius (Basic) is thinking...';
 
     try {
-        // We add {stream: true} to get the typewriter effect
-        const responseStream = await puter.ai.chat(finalPrompt, { stream: true });
+        // This is the stable, non-streaming call
+        const response = await puter.ai.chat(finalPrompt);
+        // The AI's text is inside response.message.content
+        outputArea.innerText = response.message.content;
 
-        for await (const part of responseStream) {
-            if (part.message?.content) {
-                // The 'replaceAll' cleans up the streaming text
-                outputArea.innerText += part.message.content.replaceAll(' .', '.');
-            }
-        }
     } catch (error) {
-        console.error('Error during Puter.js streaming:', error);
+        console.error('Error during Puter.js generation:', error);
         outputArea.innerText = 'Sorry, an error occurred with the Basic AI.';
     } finally {
-        // --- UI Update: Stop Loading ---
         sendButton.disabled = false;
-        loader.style.display = 'none'; // Hide the spinner
+        loader.style.display = 'none';
         loader.innerHTML = '';
     }
 }
 
 /**
- * Handles the AI generation for LOGGED-IN users.
- * Note: Streaming for the backend would require more significant changes, so we will keep it simple for now.
+ * Handles the AI generation for LOGGED-IN users by calling our secure backend.
  * @param {string} token The user's login token.
  */
 async function callProApi(token) {
@@ -83,11 +78,10 @@ async function callProApi(token) {
     const userPrompt = promptInput.value;
     const selectedTone = toneSelect.value;
     
-    // --- UI Update: Start Loading ---
     sendButton.disabled = true;
     loader.innerHTML = '<div class="loader"></div>';
     loader.style.display = 'block';
-    outputArea.innerText = '';
+    outputArea.innerText = 'Lucius (Pro) is thinking...';
 
     try {
         const response = await fetch(`${backendUrl}/api/ai/generate`, {
@@ -102,13 +96,12 @@ async function callProApi(token) {
         }
 
         const data = await response.json();
-        outputArea.innerText = data.text; // The Pro response appears all at once for now
+        outputArea.innerText = data.text;
 
     } catch (error) {
         console.error('Generation fetch error:', error);
         outputArea.innerText = `Error: ${error.message}`;
     } finally {
-        // --- UI Update: Stop Loading ---
         sendButton.disabled = false;
         loader.style.display = 'none';
         loader.innerHTML = '';
