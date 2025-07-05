@@ -1,11 +1,14 @@
 require('dotenv').config();
 
 const express = require('express');
-const cors = require('cors');
 const mongoose = require('mongoose');
+const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const OpenAI = require('openai'); // <-- UPDATED: Import OpenAI
+const session = require('express-session'); // <-- NEW
+const passport = require('passport'); // <-- NEW
+const GoogleStrategy = require('passport-google-oauth20').Strategy; // <-- NEW
+
 const authMiddleware = require('./middleware/auth');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
@@ -16,54 +19,86 @@ app.use(cors());
 app.post('/stripe-webhook', express.raw({type: 'application/json'}), async (req, res) => { /* ...your webhook logic... */ });
 app.use(express.json());
 
-// UPDATED: Initialize the OpenAI Client
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+// --- NEW: PASSPORT & SESSION SETUP ---
+app.use(session({ secret: 'your_session_secret', resave: false, saveUninitialized: true }));
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Configure Passport to use the Google Strategy
+passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: "http://localhost:3000/auth/google/callback" // This must match the one in your Google Console
+  },
+  async (accessToken, refreshToken, profile, done) => {
+    // This function is called after a user successfully logs in with Google
+    try {
+      let user = await User.findOne({ googleId: profile.id });
+      if (user) {
+        return done(null, user);
+      } else {
+        // If user doesn't exist, create a new one
+        const newUser = new User({
+          googleId: profile.id, // Store the Google ID
+          name: profile.displayName,
+          email: profile.emails[0].value,
+          // We don't have a password for Google users
+        });
+        await newUser.save();
+        return done(null, newUser);
+      }
+    } catch (error) {
+      return done(error, null);
+    }
+  }
+));
+
+passport.serializeUser((user, done) => {
+    done(null, user.id);
 });
 
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log('Successfully connected to MongoDB.'))
-    .catch((err) => console.error('MongoDB connection error:', err));
+passport.deserializeUser((id, done) => {
+    User.findById(id, (err, user) => {
+        done(err, user);
+    });
+});
 
-// --- DATABASE MODELS (No changes) ---
-const userSchema = new mongoose.Schema({ /* ... user schema ... */ });
-userSchema.pre('save', async function(next) { /* ... password hashing ... */ });
+
+// --- DATABASE CONNECTION & MODELS ---
+mongoose.connect(process.env.MONGO_URI).then(() => console.log('Successfully connected to MongoDB.')).catch((err) => console.error('MongoDB connection error:', err));
+// We need to add 'googleId' and 'name' to our user model
+const userSchema = new mongoose.Schema({
+    email: { type: String, required: true, unique: true },
+    password: { type: String }, // Password is no longer required for Google users
+    googleId: { type: String },
+    name: { type: String },
+    isPro: { type: Boolean, default: false },
+});
+userSchema.pre('save', async function(next) { if(this.password && this.isModified('password')) { const salt = await bcrypt.genSalt(10); this.password = await bcrypt.hash(this.password, salt); } next(); });
 const User = mongoose.model('User', userSchema);
-// ... other models if you have them
+
 
 // --- API ROUTES ---
-app.post('/api/users/register', async (req, res) => { /* ...your existing route... */ });
-app.post('/api/users/login', async (req, res) => { /* ...your existing route... */ });
-app.get('/api/users/me', authMiddleware, async (req, res) => { /* ...your existing route... */ });
+app.post('/api/users/register', async (req, res) => { /* ...your existing register route... */ });
+app.post('/api/users/login', async (req, res) => { /* ...your existing login route... */ });
+app.get('/api/users/me', authMiddleware, async (req, res) => { /* ...your existing get profile route... */ });
 
+// AI route is removed for now as we focus on auth
 
-// --- UPDATED: AI Generation Route Now Calls OpenAI ---
-app.post('/api/ai/generate', authMiddleware, async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id);
-        if (!user || !user.isPro) {
-            return res.status(403).json({ message: 'This is a Pro feature.' });
-        }
+// --- NEW: GOOGLE AUTH ROUTES ---
+// This route starts the Google login process
+app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
-        const { prompt, tone } = req.body;
-        const fullPrompt = `Your tone of voice must be strictly ${tone}. Now, please respond to the following request: "${prompt}"`;
-
-        // --- This block now calls OpenAI instead of Gemini ---
-        const completion = await openai.chat.completions.create({
-            model: "gpt-4o", // You can use "gpt-3.5-turbo" for a faster, cheaper option
-            messages: [{ role: "user", content: fullPrompt }],
-        });
-
-        const text = completion.choices[0].message.content;
-        res.json({ text });
-        // --- End of updated block ---
-
-    } catch (error) {
-        console.error("OpenAI API error:", error);
-        res.status(500).json({ message: 'An error occurred while communicating with the AI.' });
-    }
+// This is the callback route Google sends the user back to
+app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/login' }), (req, res) => {
+    // Successful authentication. We now create our OWN JWT for the user.
+    const payload = { user: { id: req.user.id } };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '5h' });
+    
+    // Redirect the user back to the frontend, passing the token in the URL
+    // This is a simple way to get the token to the frontend
+    res.redirect(`http://localhost:5500/auth-success.html?token=${token}`);
 });
 
-app.listen(port, () => {
-    console.log(`Server listening at http://localhost:${port}`);
-});
+
+app.listen(port, () => { console.log(`Server listening at http://localhost:${port}`); });
