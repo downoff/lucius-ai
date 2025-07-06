@@ -1,5 +1,5 @@
 // The backend URL for your live Render service.
-const backendUrl = 'https://lucius-backend.onrender.com'; // Use your actual backend URL
+const backendUrl = 'https://lucius-ai.onrender.com'; // IMPORTANT: Use your actual backend URL
 
 document.addEventListener('DOMContentLoaded', () => {
     const promptForm = document.getElementById('prompt-form');
@@ -8,18 +8,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+/**
+ * This is the main function that decides which AI to use.
+ * It's the "brain" of our Freemium model.
+ * @param {Event} event The form submission event.
+ */
 async function handlePostGeneration(event) {
     event.preventDefault();
+
+    const token = localStorage.getItem('token'); // Check if a login token exists
+
+    if (token) {
+        // If token exists, user is logged in. Call the backend for the Pro experience.
+        await callProApi(token);
+    } else {
+        // If no token, user is a free visitor. Call the frontend Puter.js API.
+        await callFreeApi();
+    }
+}
+
+/**
+ * Handles AI generation for FREE users by calling Puter.js on the frontend.
+ */
+async function callFreeApi() {
+    console.log("Calling Free API (Puter.js)");
+
     const sendButton = document.getElementById('generate-button');
     const outputArea = document.getElementById('output-area');
-    const token = localStorage.getItem('token');
     const loader = document.getElementById('loader');
-
-    if (!token) {
-        outputArea.innerText = 'Please log in or sign up to use the post generator.';
-        return;
-    }
-
     const coreMessage = document.getElementById('core-message').value;
     const platform = document.getElementById('platform-select').value;
     const keywords = document.getElementById('keywords').value;
@@ -28,31 +44,18 @@ async function handlePostGeneration(event) {
     if (keywords) {
         finalPrompt += ` Be sure to include the following keywords: ${keywords}.`;
     }
-    
+
     sendButton.disabled = true;
     loader.innerHTML = '<div class="loader"></div>';
     loader.style.display = 'block';
-    outputArea.innerText = 'Lucius is crafting your posts...';
+    outputArea.innerText = 'Lucius (Basic) is thinking...';
 
     try {
-        const response = await fetch(`${backendUrl}/api/ai/generate`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
-            body: JSON.stringify({ prompt: finalPrompt, tone: 'N/A' }),
-        });
+        const response = await puter.ai.chat(finalPrompt);
+        outputArea.innerText = response.message.content;
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'An error occurred.');
-        }
-        const data = await response.json();
-        outputArea.innerText = data.text;
     } catch (error) {
-        console.error('Generation fetch error:', error);
-        outputArea.innerText = `Error: ${error.message}`;
+        console.error('Error during Puter.js generation:', error);
+        outputArea.innerText = 'Sorry, an error occurred with the Basic AI.';
     } finally {
-        sendButton.disabled = false;
-        loader.style.display = 'none';
-        loader.innerHTML = '';
-    }
-}
+        send
