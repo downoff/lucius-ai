@@ -3,19 +3,14 @@
 <head>
     <title>Authenticating...</title>
     <script>
-        // This script runs immediately when the page loads
         window.onload = function() {
-            // Get the token from the URL query parameters
             const params = new URLSearchParams(window.location.search);
             const token = params.get('token');
-
             if (token) {
-                // If a token is found, save it to localStorage
                 localStorage.setItem('token', token);
-                // Redirect to the main homepage
-                window.location.href = '/';
+                window.location.href = '/'; // Redirect to the main homepage
             } else {
-                // If no token, something went wrong, go back to the login page
+                // If no token, something went wrong
                 window.location.href = '/login.html';
             }
         };
