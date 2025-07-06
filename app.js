@@ -1,5 +1,5 @@
 // The backend URL for your live Render service.
-const backendUrl = 'https://lucius-backend.onrender.com'; // IMPORTANT: Use your actual backend URL
+const backendUrl = 'https://lucius-backend.onrender.com'; // Use your actual backend URL
 
 document.addEventListener('DOMContentLoaded', () => {
     const promptForm = document.getElementById('prompt-form');
@@ -8,13 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-/**
- * Handles the AI generation for social media posts.
- * @param {Event} event The form submission event.
- */
 async function handlePostGeneration(event) {
     event.preventDefault();
-
     const sendButton = document.getElementById('generate-button');
     const outputArea = document.getElementById('output-area');
     const token = localStorage.getItem('token');
@@ -25,12 +20,10 @@ async function handlePostGeneration(event) {
         return;
     }
 
-    // Get values from the new, specialized form fields
     const coreMessage = document.getElementById('core-message').value;
     const platform = document.getElementById('platform-select').value;
     const keywords = document.getElementById('keywords').value;
 
-    // Use Prompt Engineering to create a powerful, detailed prompt for the AI
     let finalPrompt = `You are an expert social media marketer. Your target platform is ${platform}. Create 3 variations of a social media post based on the following core message: "${coreMessage}". The tone should be engaging and professional.`;
     if (keywords) {
         finalPrompt += ` Be sure to include the following keywords: ${keywords}.`;
@@ -44,24 +37,16 @@ async function handlePostGeneration(event) {
     try {
         const response = await fetch(`${backendUrl}/api/ai/generate`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-auth-token': token,
-            },
-            body: JSON.stringify({
-                prompt: finalPrompt,
-                tone: 'N/A' // We can ignore tone for now as it's built into the prompt
-            }),
+            headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+            body: JSON.stringify({ prompt: finalPrompt, tone: 'N/A' }),
         });
 
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.message || 'An error occurred.');
         }
-
         const data = await response.json();
         outputArea.innerText = data.text;
-
     } catch (error) {
         console.error('Generation fetch error:', error);
         outputArea.innerText = `Error: ${error.message}`;
