@@ -4,16 +4,16 @@ const backendUrl = 'https://lucius-ai.onrender.com'; // IMPORTANT: Use your actu
 document.addEventListener('DOMContentLoaded', () => {
     const promptForm = document.getElementById('prompt-form');
     if (promptForm) {
-        promptForm.addEventListener('submit', handlePostGeneration);
+        promptForm.addEventListener('submit', handleChatSubmit);
     }
 });
 
 /**
  * This is the main function that decides which AI to use.
- * It's the "brain" of our Freemium model.
+ * It is the "brain" of our Freemium model.
  * @param {Event} event The form submission event.
  */
-async function handlePostGeneration(event) {
+async function handleChatSubmit(event) {
     event.preventDefault();
 
     const token = localStorage.getItem('token'); // Check if a login token exists
@@ -36,14 +36,12 @@ async function callFreeApi() {
     const sendButton = document.getElementById('generate-button');
     const outputArea = document.getElementById('output-area');
     const loader = document.getElementById('loader');
-    const coreMessage = document.getElementById('core-message').value;
-    const platform = document.getElementById('platform-select').value;
-    const keywords = document.getElementById('keywords').value;
+    const promptInput = document.getElementById('prompt-input');
+    const toneSelect = document.getElementById('tone-select');
 
-    let finalPrompt = `You are an expert social media marketer. Your target platform is ${platform}. Create 3 variations of a social media post based on the following core message: "${coreMessage}". The tone should be engaging and professional.`;
-    if (keywords) {
-        finalPrompt += ` Be sure to include the following keywords: ${keywords}.`;
-    }
+    const userPrompt = promptInput.value;
+    const selectedTone = toneSelect.value;
+    const finalPrompt = `Your tone of voice must be strictly ${selectedTone}. Now, please respond to the following request: "${userPrompt}"`;
 
     sendButton.disabled = true;
     loader.innerHTML = '<div class="loader"></div>';
@@ -51,11 +49,63 @@ async function callFreeApi() {
     outputArea.innerText = 'Lucius (Basic) is thinking...';
 
     try {
+        // This is the stable, non-streaming call
         const response = await puter.ai.chat(finalPrompt);
+        // The AI's text is inside response.message.content
         outputArea.innerText = response.message.content;
 
     } catch (error) {
         console.error('Error during Puter.js generation:', error);
         outputArea.innerText = 'Sorry, an error occurred with the Basic AI.';
     } finally {
-        send
+        sendButton.disabled = false;
+        loader.style.display = 'none';
+        loader.innerHTML = '';
+    }
+}
+
+/**
+ * Handles the AI generation for LOGGED-IN users by calling our secure backend.
+ * @param {string} token The user's login token.
+ */
+async function callProApi(token) {
+    console.log("Calling Pro API (Backend)");
+
+    const sendButton = document.getElementById('generate-button');
+    const outputArea = document.getElementById('output-area');
+    const loader = document.getElementById('loader');
+    const promptInput = document.getElementById('prompt-input');
+    const toneSelect = document.getElementById('tone-select');
+    
+    const userPrompt = promptInput.value;
+    const selectedTone = toneSelect.value;
+    
+    sendButton.disabled = true;
+    loader.innerHTML = '<div class="loader"></div>';
+    loader.style.display = 'block';
+    outputArea.innerText = 'Lucius (Pro) is thinking...';
+
+    try {
+        const response = await fetch(`${backendUrl}/api/ai/generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+            body: JSON.stringify({ prompt: userPrompt, tone: selectedTone }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'An error occurred.');
+        }
+
+        const data = await response.json();
+        outputArea.innerText = data.text;
+
+    } catch (error) {
+        console.error('Generation fetch error:', error);
+        outputArea.innerText = `Error: ${error.message}`;
+    } finally {
+        sendButton.disabled = false;
+        loader.style.display = 'none';
+        loader.innerHTML = '';
+    }
+}
