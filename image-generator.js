@@ -1,3 +1,6 @@
+// The backend URL for your live Render service.
+const backendUrl = 'https://lucius-ai.onrender.com'; // IMPORTANT: Use your actual backend URL
+
 document.addEventListener('DOMContentLoaded', () => {
     const imageForm = document.getElementById('image-form');
     if (imageForm) {
@@ -12,6 +15,7 @@ async function handleImageGeneration(event) {
     const promptInput = document.getElementById('image-prompt-input');
     const messageArea = document.getElementById('image-message-area');
     const imageElement = document.getElementById('generated-image');
+    const loader = document.getElementById('image-loader');
     const token = localStorage.getItem('token');
 
     if (!token) {
@@ -21,12 +25,11 @@ async function handleImageGeneration(event) {
 
     const prompt = promptInput.value;
     
-    generateButton.setAttribute('aria-busy', 'true');
     generateButton.disabled = true;
-    messageArea.innerText = 'Generating your image, this may take a moment...';
+    loader.innerHTML = '<div class="loader"></div>';
+    loader.style.display = 'block';
+    messageArea.innerText = 'Generating your image, this can take up to a minute...';
     imageElement.style.display = 'none'; // Hide the old image
-
-    const backendUrl = 'https://lucius-backend.onrender.com'; // Use your actual backend URL
 
     try {
         const response = await fetch(`${backendUrl}/api/ai/generate-image`, {
@@ -54,7 +57,8 @@ async function handleImageGeneration(event) {
         console.error('Image generation fetch error:', error);
         messageArea.innerText = `Error: ${error.message}`;
     } finally {
-        generateButton.setAttribute('aria-busy', 'false');
         generateButton.disabled = false;
+        loader.style.display = 'none';
+        loader.innerHTML = '';
     }
 }

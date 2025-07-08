@@ -1,6 +1,6 @@
 require('dotenv').config();
 
-const express = require('express');
+const express = 'express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
@@ -8,120 +8,65 @@ const jwt = require('jsonwebtoken');
 const session = require('express-session');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const OpenAI = require('openai');
 const authMiddleware = require('./middleware/auth');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 const app = express();
 const port = 3000;
 
 // --- Middleware Setup ---
-const corsOptions = {
-  origin: "https://www.ailucius.com", // Use your live frontend domain
-  optionsSuccessStatus: 200
-};
-app.use(cors(corsOptions));
-
-// Stripe Webhook - this needs to be before express.json()
-app.post('/stripe-webhook', express.raw({type: 'application/json'}), async (req, res) => { /* ... your webhook logic ... */ });
-
-app.use(express.json()); // JSON parser for other routes
+app.use(cors({ origin: "https://www.ailucius.com" }));
+app.post('/stripe-webhook', express.raw({type: 'application/json'}), async (req, res) => { /* ...your webhook logic... */ });
+app.use(express.json());
 app.use(session({ secret: 'a_secret_key_for_sessions', resave: false, saveUninitialized: true }));
 app.use(passport.initialize());
 app.use(passport.session());
 
-
 // --- Database & AI Client Setup ---
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log('Successfully connected to MongoDB.'))
-    .catch((err) => console.error('MongoDB connection error:', err));
+mongoose.connect(process.env.MONGO_URI).then(() => console.log('Successfully connected to MongoDB.')).catch((err) => console.error('MongoDB connection error:', err));
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const User = require('./models/User'); // We will create this file next
 
-const userSchema = new mongoose.Schema({
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: false },
-    googleId: { type: String },
-    name: { type: String },
-    isPro: { type: Boolean, default: false },
-}, { timestamps: true });
+// --- Passport & Auth Routes ---
+// ... All your existing Passport, Register, Login, and 'me' routes go here ...
 
-userSchema.pre('save', async function(next) {
-    if (this.password && this.isModified('password')) {
-        const salt = await bcrypt.genSalt(10);
-        this.password = await bcrypt.hash(this.password, salt);
-    }
-    next();
+// --- Text Generation Route ---
+app.post('/api/ai/generate', authMiddleware, async (req, res) => {
+    // ... your existing text generation logic ...
 });
-const User = mongoose.model('User', userSchema);
 
 
-// --- Passport Google Strategy ---
-passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: "https://lucius-ai.onrender.com/auth/google/callback" // Your LIVE backend URL
-  },
-  async (accessToken, refreshToken, profile, done) => {
+// --- NEW: Protected Image Generation Route ---
+app.post('/api/ai/generate-image', authMiddleware, async (req, res) => {
     try {
-      let user = await User.findOne({ googleId: profile.id });
-      if (user) { return done(null, user); }
-      user = await User.findOne({ email: profile.emails[0].value });
-      if (user) {
-        user.googleId = profile.id;
-        user.name = user.name || profile.displayName;
-        await user.save();
-        return done(null, user);
-      } else {
-        const newUser = new User({
-          googleId: profile.id,
-          name: profile.displayName,
-          email: profile.emails[0].value,
+        const user = await User.findById(req.user.id);
+        if (!user || !user.isPro) {
+            return res.status(403).json({ message: 'This is a Pro feature. Please upgrade your account.' });
+        }
+
+        const { prompt } = req.body;
+
+        console.log("Generating image with prompt:", prompt);
+
+        const response = await openai.images.generate({
+            model: "dall-e-3", // Use the powerful DALL-E 3 model
+            prompt: prompt,
+            n: 1, // Generate one image
+            size: "1024x1024", // Standard high-quality size
         });
-        await newUser.save();
-        return done(null, newUser);
-      }
+        
+        const imageUrl = response.data[0].url;
+        res.json({ imageUrl });
+
     } catch (error) {
-      return done(error, null);
-    }
-  }
-));
-passport.serializeUser((user, done) => { done(null, user); });
-passport.deserializeUser((user, done) => { done(null, user); });
-
-
-// --- API ROUTES ---
-
-// Google Auth Routes
-app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-
-app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/login.html', session: false }), (req, res) => {
-    const payload = { user: { id: req.user.id } };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '5h' });
-    res.redirect(`https://www.ailucius.com/auth-success.html?token=${token}`); // Your LIVE frontend URL
-});
-
-// Email/Password Auth Routes
-app.post('/api/users/register', async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        if (!email || !password) {
-            return res.status(400).json({ message: 'Email and password are required.' });
-        }
-        let user = await User.findOne({ email });
-        if (user) {
-            return res.status(400).json({ message: 'User with this email already exists.' });
-        }
-        user = new User({ email, password, name: email.split('@')[0] });
-        await user.save();
-        res.status(201).json({ message: 'User registered successfully!' });
-    } catch (error) {
-        console.error("Registration error:", error);
-        res.status(500).json({ message: 'Server error during registration.' });
+        console.error("OpenAI Image Generation API error:", error);
+        res.status(500).json({ message: 'An error occurred while generating the image.' });
     }
 });
 
-app.post('/api/users/login', async (req, res) => { /* ...your full login route... */ });
-app.get('/api/users/me', authMiddleware, async (req, res) => { /* ...your full 'me' route... */ });
 
-
-// Start the Server
+// --- Start the Server ---
 app.listen(port, () => {
     console.log(`Server listening at http://localhost:${port}`);
 });

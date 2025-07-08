@@ -3,12 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lucius AI</title>
+    <title>Lucius AI - Social Media Studio</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
     <link rel="stylesheet" href="style.css">
     
     <script src="https://js.puter.com/v2/"></script>
     
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-JTJV79VH22"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-JTJV79VH22');
+    </script>
+
     <script src="global.js" defer></script>
 </head>
 <body>
@@ -21,6 +29,7 @@
                         <strong>Lucius</strong>
                     </a>
                 </li>
+                <li><a href="index.html">Social Studio</a></li>
                 <li><a href="image-generator.html">Image Generator</a></li>
             </ul>
             <ul id="logged-out-links" style="display: flex;">
@@ -29,6 +38,7 @@
                 <li><a href="signup.html" role="button">Sign Up</a></li>
             </ul>
             <ul id="logged-in-links" style="display: none;">
+                <li><a href="dashboard.html">Dashboard</a></li>
                 <li><a href="pricing.html" role="button" class="secondary">Upgrade to Pro</a></li>
                 <li><button id="logout-button">Logout</button></li>
             </ul>
@@ -37,8 +47,10 @@
 
     <main class="container">
         <article id="chat-interface">
-            <h1 id="welcome-message">Hello! What would you like to explore today?</h1>
-            <div id="output-area" style="margin-top: 2rem; border: 1px solid var(--border-color); padding: 1rem; min-height: 200px; white-space: pre-wrap; word-wrap: break-word;"></div>
+            <h1 id="welcome-message">Lucius Social Media Studio</h1>
+            <div id="output-area" style="margin-top: 2rem; border: 1px solid var(--border-color); padding: 1rem; min-height: 200px; white-space: pre-wrap; word-wrap: break-word;">
+                Your generated social media posts will appear here.
+            </div>
             <form id="prompt-form" style="margin-top: 1rem;">
                 <label for="platform-select">Target Platform</label>
                 <select id="platform-select">
