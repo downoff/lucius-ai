@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post Scheduler - Lucius AI</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="global.js" defer></script>
+</head>
+<body>
+    <header class="container">
+        </header>
+
+    <main class="container">
+        <article>
+            <hgroup>
+                <h1>Post Scheduler</h1>
+                <h2>Plan your content in advance. This is a Pro feature.</h2>
+            </hgroup>
+
+            <form id="schedule-form">
+                <label for="post-content">Post Content (Max 280 characters)</label>
+                <textarea id="post-content" placeholder="What's happening?" required maxlength="280"></textarea>
+                
+                <label for="schedule-datetime">Date and Time to Post</label>
+                <input type="datetime-local" id="schedule-datetime" required>
+                
+                <div style="display: flex; align-items: center; margin-top: 1rem;">
+                    <button type="submit" id="schedule-button">Schedule Post</button>
+                    <span id="scheduler-loader" style="display: none;"></span>
+                </div>
+                <p id="schedule-message-area" style="margin-top: 1rem;"></p>
+            </form>
+
+            <hr>
+
+            <h3>Your Scheduled Posts</h3>
+            <div id="scheduled-posts-list">
+                <p>Loading your scheduled posts...</p>
+            </div>
+        </article>
+    </main>
+
+    <script src="scheduler.js"></script>
+</body>
+</html>

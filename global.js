@@ -1,4 +1,5 @@
-const backendUrl = 'https://lucius-ai.onrender.com'; // Your backend URL
+// The backend URL for your live Render service.
+const backendUrl = 'https://lucius-ai.onrender.com';
 
 document.addEventListener('DOMContentLoaded', () => {
     checkLoginStatus();
@@ -11,9 +12,9 @@ async function checkLoginStatus() {
 
     if (loggedOutLinks && loggedInLinks) {
         if (token) {
-            // User is logged in
+            // User is logged in.
             loggedOutLinks.style.display = 'none';
-            loggedInLinks.style.display = 'flex';
+            loggedInLinks.style.display = 'flex'; 
 
             // Fetch user data to display their credits in the nav
             try {
@@ -23,11 +24,12 @@ async function checkLoginStatus() {
                 if (!response.ok) throw new Error('Auth failed');
                 const user = await response.json();
 
-                // Build the navigation for a logged-in user
+                // Build the final navigation for a logged-in user
                 loggedInLinks.innerHTML = `
-                    <li><span style="margin-right: 1rem;">Credits: <strong>${user.credits}</strong></span></li>
+                    <li><a href="scheduler.html">Scheduler</a></li>
                     <li><a href="dashboard.html">Dashboard</a></li>
-                    <li><a href="pricing.html" role="button" class="secondary">Upgrade</a></li>
+                    <li><span style="margin-right: 1rem; align-self: center;">Credits: <strong>${user.credits}</strong></span></li>
+                    <li><a href="pricing.html" role="button" class="secondary">Get More Credits</a></li>
                     <li><button id="logout-button">Logout</button></li>
                 `;
 
@@ -43,7 +45,7 @@ async function checkLoginStatus() {
             if (logoutButton) logoutButton.addEventListener('click', logout);
 
         } else {
-            // User is logged out
+            // User is logged out.
             loggedOutLinks.style.display = 'flex';
             loggedInLinks.style.display = 'none';
         }
