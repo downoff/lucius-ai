@@ -1,21 +1,56 @@
-const mongoose = require('mongoose');
+const backendUrl = 'https://lucius-ai.onrender.com'; // Your backend URL
 
-const userSchema = new mongoose.Schema({
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: false },
-    googleId: { type: String },
-    name: { type: String },
-    isPro: { type: Boolean, default: false },
-}, { timestamps: true });
-
-userSchema.pre('save', async function(next) {
-    if (this.password && this.isModified('password')) {
-        const salt = await require('bcryptjs').genSalt(10);
-        this.password = await require('bcryptjs').hash(this.password, salt);
-    }
-    next();
+document.addEventListener('DOMContentLoaded', () => {
+    checkLoginStatus();
 });
 
-const User = mongoose.model('User', userSchema);
+async function checkLoginStatus() {
+    const token = localStorage.getItem('token');
+    const loggedOutLinks = document.getElementById('logged-out-links');
+    const loggedInLinks = document.getElementById('logged-in-links');
 
-module.exports = User;
+    if (loggedOutLinks && loggedInLinks) {
+        if (token) {
+            // User is logged in
+            loggedOutLinks.style.display = 'none';
+            loggedInLinks.style.display = 'flex';
+
+            // Fetch user data to display their credits in the nav
+            try {
+                const response = await fetch(`${backendUrl}/api/users/me`, {
+                    headers: { 'x-auth-token': token }
+                });
+                if (!response.ok) throw new Error('Auth failed');
+                const user = await response.json();
+
+                // Build the navigation for a logged-in user
+                loggedInLinks.innerHTML = `
+                    <li><span style="margin-right: 1rem;">Credits: <strong>${user.credits}</strong></span></li>
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li><a href="pricing.html" role="button" class="secondary">Upgrade</a></li>
+                    <li><button id="logout-button">Logout</button></li>
+                `;
+
+            } catch (error) {
+                // If fetching user fails, show a simpler nav
+                loggedInLinks.innerHTML = `
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li><button id="logout-button">Logout</button></li>
+                `;
+            }
+            
+            const logoutButton = document.getElementById('logout-button');
+            if (logoutButton) logoutButton.addEventListener('click', logout);
+
+        } else {
+            // User is logged out
+            loggedOutLinks.style.display = 'flex';
+            loggedInLinks.style.display = 'none';
+        }
+    }
+}
+
+function logout() {
+    localStorage.removeItem('token');
+    window.location.href = 'index.html';
+}

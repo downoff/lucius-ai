@@ -1,5 +1,4 @@
-// This is the backend URL for your live Render service.
-const backendUrl = 'https://lucius-ai.onrender.com'; // IMPORTANT: Use your actual backend URL
+const backendUrl = 'https://lucius-ai.onrender.com'; // Your backend URL
 
 document.addEventListener('DOMContentLoaded', () => {
     fetchUserData();
@@ -7,10 +6,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function fetchUserData() {
     const token = localStorage.getItem('token');
-    const userEmailElement = document.getElementById('user-email');
-    const planStatusElement = document.getElementById('plan-status');
-
-    // If there's no token, the user is not logged in. Redirect them.
     if (!token) {
         window.location.href = 'login.html';
         return;
@@ -18,38 +13,44 @@ async function fetchUserData() {
 
     try {
         const response = await fetch(`${backendUrl}/api/users/me`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-auth-token': token, // Send the token to the secure backend
-            }
+            headers: { 'x-auth-token': token }
         });
 
         if (!response.ok) {
-            // If the token is invalid or expired, the server will send an error.
-            // Redirect to login page.
-            localStorage.removeItem('token'); // Clear the bad token
+            localStorage.removeItem('token');
             window.location.href = 'login.html';
             return;
         }
 
         const user = await response.json();
-
-        // Update the page with the user's data
-        if (userEmailElement) {
-            userEmailElement.innerText = `Welcome, ${user.email}`;
-        }
-        if (planStatusElement) {
-            planStatusElement.innerText = user.isPro ? 'Lucius Pro Member' : 'Basic Member';
-            if (user.isPro) {
-                planStatusElement.style.color = 'var(--primary-color)'; // Make it purple for Pro users
-            }
-        }
+        updateDashboardUI(user);
 
     } catch (error) {
         console.error('Failed to fetch user data:', error);
-        // If there's any error, clear the token and redirect to login
-        localStorage.removeItem('token');
         window.location.href = 'login.html';
+    }
+}
+
+function updateDashboardUI(user) {
+    // Populate User and Plan details
+    document.getElementById('user-email').innerText = `Welcome back, ${user.name || user.email}`;
+    const planStatusElement = document.getElementById('plan-status');
+    planStatusElement.innerText = user.isPro ? 'Lucius Pro' : 'Basic';
+    if (user.isPro) {
+        planStatusElement.style.color = 'var(--primary-color)';
+    }
+    document.getElementById('user-credits').innerText = user.credits;
+
+    // --- NEW: Handle the Connections Section ---
+    const connectionsSection = document.getElementById('connections-section');
+    if (user.xAuth && user.xAuth.isVerified) {
+        // If user has connected their X account, show a success message
+        connectionsSection.innerHTML = `<p>✅ X/Twitter Account Connected</p>`;
+    } else {
+        // Otherwise, show the button to connect
+        connectionsSection.innerHTML = `
+            <p>Connect your social accounts to enable post scheduling.</p>
+            <a href="${backendUrl}/twitter/auth" role="button">Connect your X/Twitter Account</a>
+        `;
     }
 }

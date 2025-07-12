@@ -1,5 +1,5 @@
-// The backend URL for your live Render service.
-const backendUrl = 'https://lucius-ai.onrender.com'; // IMPORTANT: Use your actual backend URL
+// Use your live backend URL from Render
+const backendUrl = 'https://lucius-ai.onrender.com'; 
 
 document.addEventListener('DOMContentLoaded', () => {
     const imageForm = document.getElementById('image-form');
@@ -48,8 +48,7 @@ async function handleImageGeneration(event) {
 
         const data = await response.json();
         
-        // Update the image source with the URL from the server
-        imageElement.src = data.imageUrl;
+        imageElement.src = data.imageUrl; // Update the image source with the URL from the server
         imageElement.style.display = 'block'; // Make the image visible
         messageArea.innerText = 'Your generated image:';
 
