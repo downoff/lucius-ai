@@ -3,77 +3,73 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
-const session = require('express-session');
 const passport = require('passport');
-const { TwitterApi } = require('twitter-api-v2');
-const cron = require('node-cron'); // <-- NEW: The scheduler library
+const OpenAI = require('openai'); // Assuming we are using OpenAI
+const authMiddleware = require('./middleware/auth');
 const User = require('./models/User');
-const ScheduledPost = require('./models/ScheduledPost');
-// ... other requires like bcrypt, jwt, etc.
+// ... other requires
 
 const app = express();
-const port = 3000;
+// ... other middleware
 
-// --- All your Middleware, DB Connection, Passport, and API Routes go here ---
-// --- There are NO CHANGES to your existing routes. ---
-// ... (app.use(cors), webhook, express.json, session, passport, mongoose.connect, etc.)
-// ... (all your app.get and app.post routes for auth, AI, scheduling, etc.)
+// --- DATABASE, PASSPORT, STRIPE, ETC. SETUP ---
+// (No changes to this section)
 
+// --- ALL OTHER API ROUTES (Login, Register, etc.) ---
+// (No changes to these routes)
 
-// --- NEW: THE SCHEDULER ENGINE (CRON JOB) ---
-// This section runs automatically on the server.
-
-console.log('Scheduler engine is setting up...');
-
-// Schedule a task to run every minute ('* * * * *')
-cron.schedule('* * * * *', async () => {
-    console.log(`[${new Date().toISOString()}] Running scheduler: checking for due posts...`);
-
-    const now = new Date();
-    // Find posts that are due to be posted and have not been posted yet
-    const duePosts = await ScheduledPost.find({
-        scheduledAt: { $lte: now },
-        status: 'scheduled'
-    });
-
-    if (duePosts.length === 0) {
-        console.log('No posts are due.');
-        return;
-    }
-
-    console.log(`Found ${duePosts.length} posts to publish.`);
-
-    // Loop through each due post and try to publish it
-    for (const post of duePosts) {
-        try {
-            const user = await User.findById(post.userId);
-            if (!user || !user.xAuth || !user.xAuth.token) {
-                throw new Error('User or X/Twitter auth tokens not found.');
-            }
-
-            // Create a Twitter client with that specific user's credentials
-            const userTwitterClient = new TwitterApi({
-                appKey: process.env.X_API_KEY,
-                appSecret: process.env.X_API_KEY_SECRET,
-                accessToken: user.xAuth.token,
-                accessSecret: user.xAuth.tokenSecret,
-            });
-
-            // Post the tweet!
-            await userTwitterClient.v2.tweet(post.content);
-
-            // If successful, update the post's status in the database
-            post.status = 'posted';
-            post.postedAt = new Date();
-            await post.save();
-            console.log(`✅ Successfully posted tweet for user ${user.email}.`);
-
-        } catch (error) {
-            console.error(`❌ Failed to post tweet for post ID ${post._id}:`, error);
-            // Mark the post as 'failed' so we don't try to send it again
-            post.status = 'failed';
-            await post.save();
+// ===================================================================
+// --- V3: UPGRADED AI GENERATION ROUTE WITH REAL-TIME STREAMING ---
+// ===================================================================
+app.post('/api/ai/generate', authMiddleware, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user || !user.isPro) {
+            return res.status(403).json({ message: 'This is a Pro feature.' });
         }
+        
+        // --- Credit Check Logic ---
+        if (user.credits <= 0) {
+            return res.status(402).json({ message: 'You have run out of credits.' });
+        }
+
+        const { prompt, tone } = req.body;
+        const fullPrompt = `Your tone of voice must be strictly ${tone}. Now, respond to: "${prompt}"`;
+
+        // --- Set up Server-Sent Events (SSE) headers ---
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.flushHeaders(); // Send headers immediately
+
+        const stream = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [{ role: "user", content: fullPrompt }],
+            stream: true, // This is the key to enabling streaming
+        });
+
+        let fullResponse = '';
+        for await (const chunk of stream) {
+            const content = chunk.choices[0]?.delta?.content || "";
+            fullResponse += content;
+            // Send each chunk of text to the frontend as it arrives
+            res.write(`data: ${JSON.stringify({ text: content })}\n\n`);
+        }
+
+        // --- Save the full conversation after the stream is complete ---
+        const chatTitle = prompt.substring(0, 30) + "...";
+        // ... (We would add the logic to save the conversation here) ...
+
+        // --- Subtract credit after successful generation ---
+        user.credits -= 1;
+        await user.save();
+        
+        console.log(`Stream completed for user ${user.email}. Credits remaining: ${user.credits}`);
+        res.end(); // End the streaming connection
+
+    } catch (error) {
+        console.error("Streaming API error:", error);
+        res.end(); // Ensure the connection is closed on error
     }
 });
 
