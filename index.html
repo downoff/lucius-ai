@@ -4,17 +4,62 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lucius AI - Social Media Studio</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
     <link rel="stylesheet" href="style.css">
-    
-    <script src="https://js.puter.com/v2/"></script>
-    
     <script src="global.js" defer></script>
 </head>
 <body>
     <header class="container">
-       </header>
+        <nav>
+            <ul>
+                <li>
+                    <a href="index.html" class="logo">
+                        <img src="assets/logo.png" alt="Lucius Logo" class="logo-image">
+                        <strong>Lucius</strong>
+                    </a>
+                </li>
+                <li><a href="index.html">Social Studio</a></li>
+                <li><a href="image-generator.html">Image Generator</a></li>
+            </ul>
+            <ul id="logged-out-links" style="display: flex;">
+                <li><a href="pricing.html">Pricing</a></li>
+                <li><a href="login.html">Login</a></li>
+                <li><a href="signup.html" role="button">Sign Up</a></li>
+            </ul>
+            <ul id="logged-in-links" style="display: none;">
+                <li><a href="dashboard.html">Dashboard</a></li>
+                <li><a href="pricing.html" role="button" class="secondary">Upgrade to Pro</a></li>
+                <li><button id="logout-button">Logout</button></li>
+            </ul>
+        </nav>
+    </header>
+
     <main class="container">
-        </main>
+        <article id="chat-interface">
+            <h1 id="welcome-message">Lucius Social Media Studio</h1>
+            <div id="output-area" style="margin-top: 2rem; border: 1px solid var(--border-color); padding: 1rem; min-height: 200px; white-space: pre-wrap; word-wrap: break-word;">
+                Your generated social media posts will appear here.
+            </div>
+            <form id="prompt-form" style="margin-top: 1rem;">
+                <label for="platform-select">Target Platform</label>
+                <select id="platform-select">
+                  <option value="X (formerly Twitter)" selected>X (Twitter)</option>
+                  <option value="LinkedIn">LinkedIn</option>
+                  <option value="Instagram Caption">Instagram</option>
+                  <option value="Facebook">Facebook</option>
+                </select>
+                <label for="core-message">Core Message or Topic</label>
+                <textarea id="core-message" placeholder="e.g., The launch of our new productivity app..." required></textarea>
+                <label for="keywords">Keywords to Include (optional)</label>
+                <input type="text" id="keywords" name="keywords" placeholder="e.g., productivity, new feature, launch">
+                <div style="display: flex; align-items: center; margin-top: 1rem;">
+                    <button type="submit" id="generate-button">Generate Posts</button>
+                    <span id="loader" style="display: none;"></span>
+                </div>
+            </form>
+        </article>
+    </main>
+
     <script src="app.js"></script>
 </body>
 </html>
