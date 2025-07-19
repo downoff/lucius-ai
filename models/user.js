@@ -9,7 +9,7 @@ const userSchema = new mongoose.Schema({
     },
     password: { 
         type: String, 
-        required: false 
+        required: false // Not required for Google OAuth users
     },
     googleId: { 
         type: String 
@@ -25,7 +25,6 @@ const userSchema = new mongoose.Schema({
         type: Number,
         default: 10 // Give 10 free trial credits to every new user
     },
-    // This is for the X/Twitter integration for the Post Scheduler
     xAuth: {
         token: String,
         tokenSecret: String,
@@ -33,7 +32,7 @@ const userSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-// Password hashing middleware (this runs automatically before a user is saved)
+// Password hashing middleware
 userSchema.pre('save', async function(next) {
     if (this.password && this.isModified('password')) {
         const salt = await bcrypt.genSalt(10);

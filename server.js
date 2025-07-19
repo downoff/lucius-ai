@@ -1,4 +1,14 @@
 require('dotenv').config();
+require('dotenv').config();
+
+const express = require('express');
+const cors = require('cors');
+const mongoose = require('mongoose');
+const session = require('express-session');
+const passport = require('passport');
+const User = require('./models/User'); // This line loads your User model
+
+// ... The rest of your server code follows ...
 
 const express = require('express');
 const cors = require('cors');
